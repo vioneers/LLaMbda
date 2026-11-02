@@ -8,6 +8,8 @@ import qualified Lambek
 import Parser
 import PySupport
 
+import System.Environment (setEnv)
+
 -- "standardize" the capitalization of a word by making the first
 -- letter uppercase and the following letters lowercase.
 -- (This will make it easier to look up words in the lexicon.)
@@ -36,6 +38,8 @@ main = do
   elx <- getLex
   -- input a database of facts
   db <- getDB
+  -- clear PYTHONSTARTUP to prevent startup messages (VS Code) from adding unexpected output
+  setEnv "PYTHONSTARTUP" ""
   -- launch a Python interpreter
   phandle <- launchPython db
   -- start the read-eval-print loop
