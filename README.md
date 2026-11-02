@@ -1,7 +1,7 @@
 # Documentation
 
 ## Part 1: Checking a sentence is grammatical (Lambek's algorithm)
-Implementation in `Lambek.hs`:
+#### Implementation in `Lambek.hs`:
 
 1. `dec_rinv` checks whether $\Gamma \rightarrow C$ by distinguishing three cases:
 
@@ -61,3 +61,30 @@ Implementation in `Lambek.hs`:
     - First, we iterate over `items lex` and find all possible types of each word in `ws`.
     - Then, we use the Haskell function `sequence` to obtain all possible combinations of these types while keeping the order of the words.
     - Finally, we check if there exist such a combination of types, call it $\Gamma$ that forms a sentence, i.e. that has the type `stp lex`, using the function `dec_rinv`.
+
+## Part 3: 
+### b: Evaluating the Python code 
+This part receives the possible meanings of a sentence as `[(LExp, PythonCode)]` - pairs of lambda expression and corresponding Python code.
+
+Until the generation of `[(LExp, PythonCode)]` is finished, we tested and validated this component independently by manually writing Python code corresponding to the different semantic meanings of some sentences. 
+
+After Parts 2 and 3a are completed, we will test the executable with sentence inputs and verify generation, evaluation and output all wired together.
+
+#### Implementation in `EvalExpr.hs`:
+- Python evaluation: 
+1. `evalMeaning :: PythonHandle -> (LExp, PythonCode) -> IO (LExp, String)` (helper)
+2. `evalMeanings :: PythonHandle -> [(LExp, PythonCode)] -> IO [(LExp, String)]`
+
+We use `runPythonCode` to evaluate the PythonCode corresponding to each possible meaning of a sentence. 
+
+- Printing: 
+3. `printMultipleSenses :: [(LExp, String)] -> IO()` (helper)
+4. `printMeanings :: [(LExp, String)] -> IO ()`
+
+In the case of a single meaning, we only print its evaluation result.
+In the case of multiple meanings, we print an ambiguity message and the result of each possible lambda expression corresponding to a different meaning. Even if all meanings evaluate to the same result, we still say the sentence is ambiguous, as different lambda expressions are possible.
+If the list of meanings is empty, we conclude that the sentence is not well-formed (according to the given lexicon).
+
+#### Change to `ChatLLaMbda.hs`: 
+
+Before calling `launchPython`, we clear `PYTHONSTARTUP` using `setEnv`. We do that because during initial testing, we noticed that otherwise, a startup message from VS Code was incorrectly interpreted as an evaluation output. This shifted the actual answers and led to incorrect outputs. Clearing `PYTHONSTARTUP` solved this issue.
