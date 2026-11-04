@@ -135,7 +135,7 @@ isGrammatical lex ws = let possibleTypes = [[a | (word, a, _) <- items lex, word
                        in any(\gamma -> dec_rinv gamma (stp lex)) gammas
 
 create_names :: [String] -> Int -> [String]
-create name [] n = []
+create_names [] n = []
 create_names (x : xs) n = (x ++ "_" ++ (show n)) : (create_names xs (n + 1)) 
 
 grammaticalStructure :: Lexicon sem -> [String] -> [LExp]
