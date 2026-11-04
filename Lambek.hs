@@ -138,12 +138,20 @@ create_names :: [String] -> Int -> [String]
 create_names [] n = []
 create_names (x : xs) n = (x ++ "_" ++ (show n)) : (create_names xs (n + 1)) 
 
-grammaticalStructure :: Lexicon sem -> [String] -> [LExp]
-grammaticalStructure lex ws = concat [der_rinv gamma (stp lex) | gamma <- named_gammas]
+getSemantics :: [((Var, LTp), sem)] -> [(Var, sem)]
+getSemantics gamma = map (\((v, t), s) -> (v, s)) gamma
+
+grammaticalStructure :: Lexicon sem -> [String] -> [(LExp, [(Var, sem)])]
+grammaticalStructure lex ws = 
+    [(e, semantics)|
+        gamma <- named_gammas, 
+        let expressions = der_rinv (map fst gamma) (stp lex),
+        let semantics = getSemantics gamma,
+        e <- expressions]
     where
         new_names = create_names ws 1
-        possibleTypes = [[a | (word, a, _) <- items lex, word == w] | w <- ws]
+        possibleTypes = [[(a, sem) | (word, a, sem) <- items lex, word == w] | w <- ws]
         gammas = sequence possibleTypes
-        named_gammas = [zip new_names gamma | gamma <- gammas]
+        named_gammas = [zipWith (\name (t, s) -> ((name, t), s)) new_names gamma | gamma <- gammas]
 
 
