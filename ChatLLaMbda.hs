@@ -3,6 +3,7 @@ import System.IO
 import Control.Exception
 
 import LTypes
+import LExp
 import qualified Lambek
 
 import Parser
@@ -24,10 +25,11 @@ repl elx phandle = do
   line <- getLine
   -- split it up into "standardized" words
   let ws = map stdize $ words line
-  -- test if the string of words is a grammatical sentence according to the lexicon
-  if Lambek.isGrammatical elx ws
-    then putStrLn "That is a well-formed sentence!"
-    else putStrLn "That is not a well-formed sentence"
+  -- show possible grammatical structure according to the lexicon
+  let expressions = Lambek.grammaticalStructure elx ws
+  if null expressions
+    then putStrLn "That is not a well-formed sentence"
+    else mapM_ printLExp expressions
   -- repeat
   repl elx phandle
       
