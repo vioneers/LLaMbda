@@ -78,5 +78,5 @@ Graduate : cmd / np             = graduate.
 Enroll   : cmd / np             = enroll.
 Advance  : cmd / np             = advance.
 
-Who      : s / (np \ s)         = lambda p: [x for x in people if p(x)].
-Which    : (s / (np \ s)) / n   = lambda n: lambda p: [x for x in entities if n(x) and p(x)].
+Who      : q / (np \ s)         = lambda p: [x for x in people if p(x)].
+Which    : (q / (np \ s)) / n   = lambda n: lambda p: [x for x in entities if n(x) and p(x)].

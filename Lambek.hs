@@ -163,3 +163,6 @@ we want the command type cmd
 -}
 commandStructure :: Lexicon sem -> [String] -> [(LExp, [(Var, sem)])]
 commandStructure lex ws = grammaticalStructure (lex { stp = Atm "cmd" }) ws
+
+questionStructure :: Lexicon sem -> [String] -> [(LExp, [(Var, sem)])]
+questionStructure lex ws = grammaticalStructure (lex { stp = Atm "q" }) ws

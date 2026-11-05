@@ -154,7 +154,8 @@ We extended the interface to support simple questions by adding `Who` and `Which
 
 - `Who` takes a predicate and returns the people satisfying it.
 - `Which` takes a noun and a predicate and returns the entities satisfying both.
-- the derivation algorithm remains unchanged; the only additions are made in the lexicon, by adding the types and semantics.
+- questions get their own atomic type `q` (e.g. `Who : q / (np \ s)`), and `questionStructure` in `Lambek.hs` searches for derivations of type `q`, in the same way `commandStructure` does for `cmd`;
+- this avoids meaningless answers: with type `s`, `Who Studies A Challenging Course` also had a reading that returned `True` instead of a list of people. 
 
 Examples:
 - `Who Studies Compilers`

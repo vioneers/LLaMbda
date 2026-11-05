@@ -27,7 +27,7 @@ repl elx phandle = do
   -- split it up into "standardized" words
   let ws = map stdize $ words line
   -- show possible grammatical structure according to the lexicon
-  let structures = Lambek.grammaticalStructure elx ws
+  let structures = Lambek.grammaticalStructure elx ws ++ Lambek.questionStructure elx ws
   let commands = Lambek.commandStructure elx ws
 
   case (null structures, null commands) of 

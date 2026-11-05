@@ -37,5 +37,5 @@ And      : adj \ (adj / adj)    = lambda p : lambda q : lambda x : p(x) and q(x)
 Feed     : cmd / np             = feed.
 Wake     : cmd / np             = wake.
 
-Who      : s / (np \ s)         = lambda p: [x for x in animals if p(x)].
-Which    : (s / (np \ s)) / n   = lambda n: lambda p: [x for x in animals if n(x) and p(x)].
+Who      : q / (np \ s)         = lambda p: [x for x in animals if p(x)].
+Which    : (q / (np \ s)) / n   = lambda n: lambda p: [x for x in animals if n(x) and p(x)].
