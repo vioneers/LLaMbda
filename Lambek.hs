@@ -25,12 +25,14 @@ dec_rinv gamma c =
         DivL a b -> dec_rinv (a : gamma) b
         DivR b a -> dec_rinv (gamma ++ [a]) b
 
--- nested_application: (f, [u, v]) to (f u) v
+--helper for created an application with multiple arguments
+--nested_application: (f, [u, v]) to (f u) v
 nested_application :: (LExp, [LExp]) -> LExp
 nested_application (v, []) = v
 nested_application (v, x : xs) =  nested_application (A v x, xs)
 
--- build_focus_applications applies the focus to each possible argument list
+--helper for creating the nested applications for the variable in focus
+--for all the possible structures 
 build_focus_applications :: (Var, [[LExp]]) -> [LExp]
 build_focus_applications (v, []) = []
 build_focus_applications (v, x: xs) = (nested_application (V v, x)) : build_focus_applications (v, xs)
@@ -130,7 +132,7 @@ isGrammatical lex ws = let possibleTypes = [[a | (word, a, _) <- items lex, word
                            gammas        = sequence possibleTypes
                        in any(\gamma -> dec_rinv gamma (stp lex)) gammas
 
--- create_names adds position in sentence
+--adds numbers to the words based on their position in the sentence 
 create_names :: [String] -> Int -> [String]
 create_names [] n = []
 create_names (x : xs) n = (x ++ "_" ++ (show n)) : (create_names xs (n + 1))

@@ -3,6 +3,26 @@ module EvalExpr where
 import LExp
 import PySupport
 
+extractCode :: [(Var, PythonCode)] -> Var -> PythonCode
+extractCode [] v = PCode v
+extractCode (entry : env) v = if fst entry == v then snd entry
+                                              else extractCode env v
+
+interpret :: [(Var, PythonCode)] -> LExp -> PythonCode
+interpret env expr =
+    case expr of
+        V v -> extractCode env v
+        A e1 e2 ->PCode ('(' : code1 ++ ")(" ++ code2 ++ ")")
+            where
+                code1 = text (interpret env e1)
+                code2 = text (interpret env e2)
+        L x e -> PCode ("lambda " ++ x ++ ": " ++ code)
+            where
+                code = text (interpret env e)
+
+translateToCode :: [(LExp, [(Var, PythonCode)])] -> [(LExp, PythonCode)]
+translateToCode xs = [(expr, interpret env expr) |(expr, env) <- xs]
+
 -- takes a pair (lambda expression, corresponding code) and returns the pair 
 -- (same lambda expression, the answer from Python)
 evalMeaning :: PythonHandle -> (LExp, PythonCode) -> IO (LExp, String)
