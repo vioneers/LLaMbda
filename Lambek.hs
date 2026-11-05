@@ -157,3 +157,9 @@ grammaticalStructure lex ws =
         possibleTypes = [[(a, sem) | (word, a, sem) <- items lex, word == w] | w <- ws]
         gammas = sequence possibleTypes
         named_gammas = [zipWith (\name (t, s) -> ((name, t), s)) new_names gamma | gamma <- gammas]
+
+{- commandStructure calls grammaticalStructure but instead of the sentence type, 
+we want the command type cmd
+-}
+commandStructure :: Lexicon sem -> [String] -> [(LExp, [(Var, sem)])]
+commandStructure lex ws = grammaticalStructure (lex { stp = Atm "cmd" }) ws

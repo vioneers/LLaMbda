@@ -65,3 +65,13 @@ printMeanings meanings = case meanings of
     sense_list -> do
         putStrLn "That sentence is ambiguous"
         printMultipleSenses sense_list
+
+-- given all possible meanings of a command, either executes it or reports ambiguity
+executeCmd :: PythonHandle -> [(LExp, PythonCode)] -> IO ()
+executeCmd handle [] = return ()
+executeCmd handle [(expr, code)] = do 
+    let codeToPrint = PCode ("print( " ++ text code ++ ")")
+    (_, answer) <- evalMeaning handle (expr, codeToPrint)
+    putStrLn answer
+executeCmd handle commands = do
+    putStrLn "That command is ambigous. No action was performed."

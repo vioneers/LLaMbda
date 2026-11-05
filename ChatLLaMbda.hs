@@ -28,6 +28,20 @@ repl elx phandle = do
   let ws = map stdize $ words line
   -- show possible grammatical structure according to the lexicon
   let structures = Lambek.grammaticalStructure elx ws
+  let commands = Lambek.commandStructure elx ws
+
+  case (null structures, null commands) of 
+    (True, True)  -> putStrLn "Not well-formed" 
+    (False, True) -> do
+        -- transform lambda expressions to corresponding code => [(LExp, PythonCode)]
+        let pycode = translateToCode structures
+        -- evaluate Python code with evalMeanings => IO [(LExp, String)]; 
+        -- we extract the result [(LExp, String)] using <- 
+        meanings <- evalMeanings phandle pycode 
+        -- print the meanings => IO()
+        printMeanings meanings
+    (True, False) -> executeCmd phandle (translateToCode commands)
+    (False, False) -> putStrLn "Your input is ambiguous. Please reformulate as either a statement or command. No action was performed."
 
   {- this was for part 2
   let expressions = map fst structures
@@ -35,9 +49,6 @@ repl elx phandle = do
     then putStrLn "That is not a well-formed sentence"
     else mapM_ printLExp expressions
   -}
-  
-  -- transform lambda expressions to corresponding code => [(LExp, PythonCode)]
-  let pycode = translateToCode structures
 
   {- for testing
   mapM_ (\(expr, code) -> do
@@ -45,12 +56,6 @@ repl elx phandle = do
     putStrLn ("Python: " ++ text code)
     ) pycode
   -}
-
-  -- evaluate Python code with evalMeanings => IO [(LExp, String)]; 
-  -- we extract the result [(LExp, String)] using <- 
-  meanings <- evalMeanings phandle pycode 
-  -- print the meanings => IO()
-  printMeanings meanings
 
   -- repeat
   repl elx phandle

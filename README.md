@@ -71,7 +71,7 @@
 ### b: Evaluating the Python code 
 This part receives the possible meanings of a sentence as `[(LExp, PythonCode)]` - pairs of lambda expression and corresponding Python code.
 
-Until the generation of `[(LExp, PythonCode)]` is finished, we tested and validated this component independently by manually writing Python code corresponding to the different semantic meanings of some sentences. 
+Before integration, we first tested and validated this component independently by manually writing Python code corresponding to the different semantic meanings of some sentences. (see Testing Protocol)
 
 After Parts 2 and 3a are completed, we will test the executable with sentence inputs and verify generation, evaluation and output all wired together.
 
