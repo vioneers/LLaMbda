@@ -103,8 +103,6 @@ This part receives the possible meanings of a sentence as `[(LExp, PythonCode)]`
 
 Before integration, we first tested and validated this component independently by manually writing Python code corresponding to the different semantic meanings of some sentences. (see Testing Protocol)
 
-After Parts 2 and 3a are completed, we will test the executable with sentence inputs and verify generation, evaluation and output all wired together.
-
 #### Implementation in `EvalExpr.hs`:
 - Python evaluation: 
 1. `evalMeaning :: PythonHandle -> (LExp, PythonCode) -> IO (LExp, String)` (helper)
@@ -130,6 +128,20 @@ If the list of meanings is empty, we conclude that the sentence is not well-form
 
 Before calling `launchPython`, we clear `PYTHONSTARTUP` using `setEnv`. We do that because during initial testing, we noticed that otherwise, a startup message from VS Code was incorrectly interpreted as an evaluation output. This shifted the actual answers and led to incorrect outputs. Clearing `PYTHONSTARTUP` solved this issue.
 
+## Testing protocol (before extensions)
+| Sentence | Lambda expression | Python code | Evaluation |
+|---|---|---|---|
+| Seamus sleeps and Seamus is grey | `And_3 (Sleeps_2 Seamus_1) (Is_5 Seamus_4 Grey_6)` | `((lambda x : lambda y : x and y)((lambda x : x in sleep)('Seamus')))(((lambda x : lambda p : p(x))('Seamus'))(lambda x : x in grey))` | `True` |
+| Conor sleeps | `Sleeps_2 Conor_1` | `(lambda x : x in sleep)('Conor')` | `False` |
+| every cat sleeps | `Every_1 Cat_2 (\a. Sleeps_3 a)` | `((lambda q : lambda p : all (p(x) for x in animals if q(x)))(lambda x : kind[x] == 'cat'))(lambda a: (lambda x : x in sleep)(a))` | `False` |
+| every grey cat sleeps | `Every_1 (Grey_2 Cat_3) (\a. Sleeps_4 a)` | `((lambda q : lambda p : all (p(x) for x in animals if q(x)))((lambda p : lambda x : p(x) and x in grey)(lambda x : kind[x] == 'cat')))(lambda a: (lambda x : x in sleep)(a))` | `True` | 
+| every cat fears a dog: sense 1 | `Every_1 Cat_2 (\a. A_4 Dog_5 (\b. Fears_3 a b))` | `((lambda q : lambda p : all (p(x) for x in animals if q(x)))(lambda x : kind[x] == 'cat'))(lambda a: ((lambda q : lambda p : any (p(x) and q(x) for x in animals))(lambda x : kind[x] == 'dog'))(lambda b: ((lambda x : lambda y : (x,y) in fear)(a))(b)))` | `Sense [Every_1 Cat_2 (\a. A_4 Dog_5 (\b. Fears_3 a b))]: True` |
+| every cat fears a dog: sense 2 | `A_4 Dog_5 (\a. Every_1 Cat_2 (\b. Fears_3 b a))` | `((lambda q : lambda p : any (p(x) and q(x) for x in animals))(lambda x : kind[x] == 'dog'))(lambda a: ((lambda q : lambda p : all (p(x) for x in animals if q(x)))(lambda x : kind[x] == 'cat'))(lambda b: ((lambda x : lambda y : (x,y) in fear)(b))(a)))` | `Sense [A_4 Dog_5 (\a. Every_1 Cat_2 (\b. Fears_3 b a))]: False` |
+| Seamus is hungry and grey | `Is_2 Seamus_1 (And_4 Hungry_3 Grey_5)` | `((lambda x : lambda p : p(x))('Seamus'))(((lambda p : lambda q : lambda x : p(x) and q(x))(lambda x : x in hungry))(lambda x : x in grey))` | `False` | 
+| someone fears Fiona | `Someone_1 (\a. Fears_2 a Fiona_3)` | `(lambda p : any (p(x) for x in animals))(lambda a: ((lambda x : lambda y : (x,y) in fear)(a))('Fiona'))` | `True` | 
+
+For ambiguous sentences, the program also prints `That sentence is ambiguous` before the sense results.
+
 ## Going Beyond
 
 ### 1. New Knowledge Domain - University terms
@@ -146,11 +158,9 @@ Examples:
 - `Teodora Studies Compilers`
 - `Every Student Attends A University`
 
-One limitation of this domain is that the conjunction `And` doesn't support sentences like `Maria And Teodora Study Functional` or `Maria Studies Functional And Compilers`. They require another structure for the conjunction `And`. The first type of sentence would also require an adaptation for plural and singular verbs as `Maria And Teodora Studies` is grammatically incorrect in English. Hence, we keep this in mind for further expansions of the project.
-
 ### 2. Support for Questions
 
-We extended the interface to support simple questions by adding `Who` and `Which` to the university lexicon.
+We extended the interface to support simple questions by adding `Who` and `Which` to the university and animals lexicons.
 
 - `Who` takes a predicate and returns the people satisfying it.
 - `Which` takes a noun and a predicate and returns the entities satisfying both.
@@ -161,19 +171,62 @@ Examples:
 - `Who Studies Compilers`
 - `Which Course Is Challenging`
 
-Limitations:
-- We assume the sentences received don't have any sort of punctuation
+### 3. Support for Imperative Sentences
 
-# Testing protocol
-| Sentence | Lambda expression | Python code | Evaluation |
-|---|---|---|---|
-| Seamus sleeps and Seamus is grey | `And_3 (Sleeps_2 Seamus_1) (Is_5 Seamus_4 Grey_6)` | `((lambda x : lambda y : x and y)((lambda x : x in sleep)('Seamus')))(((lambda x : lambda p : p(x))('Seamus'))(lambda x : x in grey))` | `True` |
-| Conor sleeps | `Sleeps_2 Conor_1` | `(lambda x : x in sleep)('Conor')` | `False` |
-| every cat sleeps | `Every_1 Cat_2 (\a. Sleeps_3 a)` | `((lambda q : lambda p : all (p(x) for x in animals if q(x)))(lambda x : kind[x] == 'cat'))(lambda a: (lambda x : x in sleep)(a))` | `False` |
-| every grey cat sleeps | `Every_1 (Grey_2 Cat_3) (\a. Sleeps_4 a)` | `((lambda q : lambda p : all (p(x) for x in animals if q(x)))((lambda p : lambda x : p(x) and x in grey)(lambda x : kind[x] == 'cat')))(lambda a: (lambda x : x in sleep)(a))` | `True` | 
-| every cat fears a dog: sense 1 | `Every_1 Cat_2 (\a. A_4 Dog_5 (\b. Fears_3 a b))` | `((lambda q : lambda p : all (p(x) for x in animals if q(x)))(lambda x : kind[x] == 'cat'))(lambda a: ((lambda q : lambda p : any (p(x) and q(x) for x in animals))(lambda x : kind[x] == 'dog'))(lambda b: ((lambda x : lambda y : (x,y) in fear)(a))(b)))` | `Sense [Every_1 Cat_2 (\a. A_4 Dog_5 (\b. Fears_3 a b))]: True` |
-| every cat fears a dog: sense 2 | `A_4 Dog_5 (\a. Every_1 Cat_2 (\b. Fears_3 b a))` | `((lambda q : lambda p : any (p(x) and q(x) for x in animals))(lambda x : kind[x] == 'dog'))(lambda a: ((lambda q : lambda p : all (p(x) for x in animals if q(x)))(lambda x : kind[x] == 'cat'))(lambda b: ((lambda x : lambda y : (x,y) in fear)(b))(a)))` | `Sense [A_4 Dog_5 (\a. Every_1 Cat_2 (\b. Fears_3 b a))]: False` |
-| Seamus is hungry and grey | `Is_2 Seamus_1 (And_4 Hungry_3 Grey_5)` | `((lambda x : lambda p : p(x))('Seamus'))(((lambda p : lambda q : lambda x : p(x) and q(x))(lambda x : x in hungry))(lambda x : x in grey))` | `False` | 
-| someone fears Fiona | `Someone_1 (\a. Fears_2 a Fiona_3)` | `(lambda p : any (p(x) for x in animals))(lambda a: ((lambda x : lambda y : (x,y) in fear)(a))('Fiona'))` | `True` | 
+- We also added support for imperative sentences i.e. commands that modify the state of the running Python world. 
 
-For ambiguous sentences, the program also prints `That sentence is ambiguous` before the sense results.
+- Commands have grammatical type `cmd`. 
+- We added Python action functions in `aniworld.py` and `uniworld.py`. For example, feeding removes an animal from the `hungry` set, while enrolment adds a person to the `students` and `first_year` sets, and graduating removes a person from the `students` and `final_year` sets and adds the person to the `graduates` set. The changes reset when we restart the program.
+- `commandStructure` calls the existing `grammaticalStructure` with `cmd` as its target. 
+- In `repl`, we now recognize statements and commands separately. We use `executeCmd` to execute the command only when it has exactly one meaning. Ambiguous commands result in no action being performed.
+
+Below is a demonstration (the rows are executed sequentially in this order to get these results):
+
+- `university.elx` / `uniworld.py`:
+
+| Input | Output |
+|---|---|
+| `Graduate Sarah` | Sarah is not a student |
+| `Enroll Sarah` | Enrolled Sarah |
+| `Advance Sarah` | Advanced Sarah to second year at unknown university |
+| `Advance Sarah` | Advanced Sarah to third (final) year at unknown university |
+| `Advance Sarah` | Graduated Sarah from unknown university |
+| `Which student is smart and freshman` | `['Villads']` |
+| `Advance Villads` | Advanced Villads to second year at MIT |
+| `Graduate Villads` | Villads not in final year of studies |
+| `Advance Villads` | Advanced Villads to third (final) year at MIT |
+| `Graduate Villads` | Graduated Villads from MIT |
+| `Graduate Teodora` | Graduated Teodora from ETH |
+| `Who is freshman and tired` | `['Nadia']` |
+
+- `animals.elx` / `aniworld.py`:
+
+| Input | Expected output |
+|---|---|
+| `Conor is hungry` | `True` |
+| `Feed Conor` | Fed Conor |
+| `Conor is hungry` | `False` |
+| `Feed Conor` | Conor not hungry |
+| `Which cat is hungry` | `[]` |
+| `Seamus sleeps` | `True` |
+| `Wake Seamus` | Woke up Seamus |
+| `Seamus sleeps` | `False` |
+| `Wake Seamus` | Seamus already awake |
+| `Conor sleeps` | `False` |
+| `Wake Conor` | Conor already awake |
+| `Conor sleeps` | `False` |
+
+## Limitations:
+- We accept only words and constructions defined in the given lexicon.
+- Conjunctions are limited: The conjunction `And` doesn't support sentences like `Maria And Teodora Study Functional` or `Maria Studies Functional And Compilers`. They require another structure for the conjunction `And`. The first type of sentence would also require an adaptation for plural and singular verbs as `Maria And Teodora Studies` is grammatically incorrect in English. 
+- Questions: We assume the sentences received don't have any sort of punctuation. Answers are displayed as Python lists. Questions are about the subject: `Who studies analysis` or `Which student is tired`. Questions such as `Which course does Maria study` are not accepted.
+- Imperative sentences: Commands are limited to those defined in each lexicon: `Feed` and `Wake` for animals, `Enroll`, `Advance`, `Graduate` for university. Compound actions such as `Feed Conor and wake Seamus` are not supported, neither are quantified commands such as `Feed every cat`. We assume that feeding implies no longer being hungry after and advancement only checks year of study and not examination results.
+- We do not give explanations on why a sentence is True or False. 
+
+We will keep these in mind for future interesting directions to expand the project.
+
+# AI Usage 
+- We used AI for help with small Haskell syntax issues and conceptual questions, as well as for rephrasing and formatting when writing the README.
+- In terms of code, we asked AI to identify existing Haskell functions with the functionality we needed in 2 situations, which led us to `sequence` and `mapM_`. We reviewed how both functions work before using them.
+- We also used AI to identify edge test cases and broaden our test coverage.
+- During testing, we noticed a VS Code startup message was read as the first semantic result, shifting subsequent results. We asked AI to help diagnose this unexpected output and learned to use `setEnv "PYTHONSTARTUP" ""` to avoid this issue.
