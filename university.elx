@@ -16,6 +16,8 @@ Ioana      : np        = 'Ioana'.
 Luxin      : np        = 'Luxin'.
 Nadia      : np        = 'Nadia'.
 Hugo       : np        = 'Hugo'.
+Tom        : np        = 'Tom'.
+Sarah      : np        = 'Sarah'.
 
 Functional  : np       = 'Functional Programming'.
 Statistics  : np       = 'Statistics'.
@@ -25,7 +27,7 @@ Algebra     : np       = 'Algebra'.
 
 
 Entity       : n       = lambda x : x in entities.
-Student      : n       = lambda x : kind[x] == 'student'.
+Student      : n       = lambda x : x in students.
 University   : n       = lambda x : kind[x] == 'university'.
 Course       : n       = lambda x : kind[x] == 'course'.
 
@@ -51,6 +53,10 @@ Smart         : adj                  = lambda x : x in smart.
 Smart         : n / n                = lambda p : lambda x : p(x) and x in smart.
 Tired         : adj                  = lambda x : x in tired.
 Tired         : n / n                = lambda p : lambda x : p(x) and x in tired.
+Freshman      : adj                  = lambda x : x in first_year.
+Freshman      : n / n                = lambda p : lambda x : p(x) and x in first_year.
+Senior        : adj                  = lambda x : x in final_year.
+Senior        : n / n                = lambda p : lambda x : p(x) and x in final_year.
 
 Selective     : adj                  = lambda x : x in selective.
 Selective     : n / n                = lambda p : lambda x : p(x) and x in selective.
@@ -69,5 +75,9 @@ And      : s \ (s / s)          = lambda x : lambda y : x and y.
 And      : adj \ (adj / adj)    = lambda p : lambda q : lambda x : p(x) and q(x).
 And      : np \ ((s / (np \ s)) / np) = lambda x : lambda y : lambda p : p(x) and p(y).
 
-Who      : s / (np \ s)         = lambda p: [x for x in students if p(x)].
+Graduate : cmd / np             = graduate.
+Enroll   : cmd / np             = enroll.
+Advance  : cmd / np             = advance.
+
+Who      : s / (np \ s)         = lambda p: [x for x in people if p(x)].
 Which    : (s / (np \ s)) / n   = lambda n: lambda p: [x for x in entities if n(x) and p(x)].
