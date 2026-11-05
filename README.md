@@ -1,4 +1,9 @@
 # Documentation
+## Building and running
+- Compilation: `ghc -package process ChatLLaMbda.hs -o ChatLLaMbda`
+- Launching the executable: `./ChatLLaMbda`
+- Lexicon file: `animals.elx`
+- Facts about the world: `aniworld.py`
 
 ## Part 1: Checking a sentence is grammatical (Lambek's algorithm)
 #### Implementation in `Lambek.hs`:
@@ -85,6 +90,26 @@ In the case of a single meaning, we only print its evaluation result.
 In the case of multiple meanings, we print an ambiguity message and the result of each possible lambda expression corresponding to a different meaning. Even if all meanings evaluate to the same result, we still say the sentence is ambiguous, as different lambda expressions are possible.
 If the list of meanings is empty, we conclude that the sentence is not well-formed (according to the given lexicon).
 
+### c: Wiring up in repl 
+- Finally, we wire everything up in the read-eval-print-loop in `ChatLLaMbda.hs`:
+    - `Lambek.grammaticalStructure elx ws` produces a list of pairs (lambda expression, environment mapping word to its Python code), representing the possible meanings of a sentence;
+    - `translateToCode` translates each expression (using its env) => `[(LExp, PythonCode)]`;
+    - evaluate the generated code using `evalMeanings` (that uses the running Python interpreter) and print the results with `printMeanings`.
+
 #### Change to `ChatLLaMbda.hs`: 
 
 Before calling `launchPython`, we clear `PYTHONSTARTUP` using `setEnv`. We do that because during initial testing, we noticed that otherwise, a startup message from VS Code was incorrectly interpreted as an evaluation output. This shifted the actual answers and led to incorrect outputs. Clearing `PYTHONSTARTUP` solved this issue.
+
+# Testing protocol
+| Sentence | Lambda expression | Python code | Evaluation |
+|---|---|---|---|
+| Seamus sleeps and Seamus is grey | `And_3 (Sleeps_2 Seamus_1) (Is_5 Seamus_4 Grey_6)` | `((lambda x : lambda y : x and y)((lambda x : x in sleep)('Seamus')))(((lambda x : lambda p : p(x))('Seamus'))(lambda x : x in grey))` | `True` |
+| Conor sleeps | `Sleeps_2 Conor_1` | `(lambda x : x in sleep)('Conor')` | `False` |
+| every cat sleeps | `Every_1 Cat_2 (\a. Sleeps_3 a)` | `((lambda q : lambda p : all (p(x) for x in animals if q(x)))(lambda x : kind[x] == 'cat'))(lambda a: (lambda x : x in sleep)(a))` | `False` |
+| every grey cat sleeps | `Every_1 (Grey_2 Cat_3) (\a. Sleeps_4 a)` | `((lambda q : lambda p : all (p(x) for x in animals if q(x)))((lambda p : lambda x : p(x) and x in grey)(lambda x : kind[x] == 'cat')))(lambda a: (lambda x : x in sleep)(a))` | `True` | 
+| every cat fears a dog: sense 1 | `Every_1 Cat_2 (\a. A_4 Dog_5 (\b. Fears_3 a b))` | `((lambda q : lambda p : all (p(x) for x in animals if q(x)))(lambda x : kind[x] == 'cat'))(lambda a: ((lambda q : lambda p : any (p(x) and q(x) for x in animals))(lambda x : kind[x] == 'dog'))(lambda b: ((lambda x : lambda y : (x,y) in fear)(a))(b)))` | `Sense [Every_1 Cat_2 (\a. A_4 Dog_5 (\b. Fears_3 a b))]: True` |
+| every cat fears a dog: sense 2 | `A_4 Dog_5 (\a. Every_1 Cat_2 (\b. Fears_3 b a))` | `((lambda q : lambda p : any (p(x) and q(x) for x in animals))(lambda x : kind[x] == 'dog'))(lambda a: ((lambda q : lambda p : all (p(x) for x in animals if q(x)))(lambda x : kind[x] == 'cat'))(lambda b: ((lambda x : lambda y : (x,y) in fear)(b))(a)))` | `Sense [A_4 Dog_5 (\a. Every_1 Cat_2 (\b. Fears_3 b a))]: False` |
+| Seamus is hungry and grey | `Is_2 Seamus_1 (And_4 Hungry_3 Grey_5)` | `((lambda x : lambda p : p(x))('Seamus'))(((lambda p : lambda q : lambda x : p(x) and q(x))(lambda x : x in hungry))(lambda x : x in grey))` | `False` | 
+| someone fears Fiona | `Someone_1 (\a. Fears_2 a Fiona_3)` | `(lambda p : any (p(x) for x in animals))(lambda a: ((lambda x : lambda y : (x,y) in fear)(a))('Fiona'))` | `True` | 
+
+For ambiguous sentences, the program also prints `That sentence is ambiguous` before the sense results.

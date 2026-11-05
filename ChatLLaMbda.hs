@@ -38,6 +38,14 @@ repl elx phandle = do
   
   -- transform lambda expressions to corresponding code => [(LExp, PythonCode)]
   let pycode = translateToCode structures
+
+  {- for testing
+  mapM_ (\(expr, code) -> do
+    putStrLn ("Lambda expr: " ++ prettyLExp expr)
+    putStrLn ("Python: " ++ text code)
+    ) pycode
+  -}
+
   -- evaluate Python code with evalMeanings => IO [(LExp, String)]; 
   -- we extract the result [(LExp, String)] using <- 
   meanings <- evalMeanings phandle pycode 
