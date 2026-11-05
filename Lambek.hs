@@ -6,17 +6,16 @@ import LTypes
 import LExp
 
 {-
-dec_rinv reduces target until it is atomic then passes it to dec_linv with a chosen focus
-dec_linv decomposes the focus type and consumes the needed argument from either left 
-or right side
--}
-
-{-dec_rinv :: [LTp] -> LTp -> Bool
-
+dec_rinv :: [LTp] -> LTp -> Bool
 dec_rinv gamma c "can the list gamma produce the type c"
+
+for a division target, it introduces an assumption on the left (for DivL) / right (for DivR)
+side and continues reducing the target.
+
+for an atomic target, it tries all possible focus types and calls dec_lfoc.
 -}
 dec_rinv :: [LTp] -> LTp -> Bool
-dec_rinv gamma c = 
+dec_rinv gamma c =
     case c of
         Atm p    -> any(\i -> let gammaL = take i gamma
                                   f = gamma !! i
@@ -26,23 +25,21 @@ dec_rinv gamma c =
         DivL a b -> dec_rinv (a : gamma) b
         DivR b a -> dec_rinv (gamma ++ [a]) b
 
-{-
-der_inv constructs full lambda expressions
-der_inv collects argumenst for its focused type
--}
-
+-- nested_application: (f, [u, v]) to (f u) v
 nested_application :: (LExp, [LExp]) -> LExp
 nested_application (v, []) = v
 nested_application (v, x : xs) =  nested_application (A v x, xs)
 
+-- build_focus_applications applies the focus to each possible argument list
 build_focus_applications :: (Var, [[LExp]]) -> [LExp]
 build_focus_applications (v, []) = []
-build_focus_applications (v, x: xs) = (nested_application (V v, x)) : build_focus_applications (v, xs) 
+build_focus_applications (v, x: xs) = (nested_application (V v, x)) : build_focus_applications (v, xs)
 
--- here f :: (Var, LTp)
+-- der_rinv constructs full lambda expressions for successful derivations
+
 der_rinv :: [(Var,LTp)] -> LTp -> [LExp]
-der_rinv gamma c = 
-    case c of 
+der_rinv gamma c =
+    case c of
         Atm p -> concat expressions
             where
                 tries = [(take i gamma, gamma !! i, drop (i + 1) gamma)| i <- [0 .. (length gamma - 1)]]
@@ -51,52 +48,41 @@ der_rinv gamma c =
 
         DivL a b -> [L new_var expr |expr <- expressions]
             where
-                var_names = [V (fst elem) | elem <- gamma] 
+                var_names = [V (fst elem) | elem <- gamma]
                 new_var = fresh var_names
-                expressions = der_rinv ((new_var, a) : gamma) b 
+                expressions = der_rinv ((new_var, a) : gamma) b
 
         DivR b a -> [L new_var expr |expr <- expressions]
-            where 
-                var_names = [V (fst elem) | elem <- gamma] 
+            where
+                var_names = [V (fst elem) | elem <- gamma]
                 new_var = fresh var_names
-                expressions = der_rinv (gamma ++ [(new_var , a)]) b 
+                expressions = der_rinv (gamma ++ [(new_var , a)]) b
 
 {-
 dec_lfoc :: [LTp] -> LTp -> [LTp] -> Atm -> Bool
 
-dec_lfoc gammaL f gammaR p = 
-if f atomic then f needs to pe the same as p AND gammaL and gammaR must both be empty
+dec_lfoc decomposes the focus type and consumes the needed argument from either left
+or right side
+
+dec_lfoc gammaL f gammaR p =
+if f atomic then f needs to be the same as p AND gammaL and gammaR must both be empty
 --------------
-if f divL a b 
-
-    gammaL        gammaR
-   [.......] a\b [.......] 
-
-   [....|**] a\b [.......] if we section gammaL at any point, can its rightmost part(gammaL2) produce a?
-    |     |
-gammaL1  gammaL2
-
-then scope becomes  gammaL1 b gammaR p
+if f divL a b
+is there a split gammaL = gammaL1 ++ gammaL2 st
+    gammaL2 -> a and
+    gammaL1 [b] gammaR -> p?
 ----------------
-if f divR b a 
-
-    gammaL         gammaR
-   [.......] b /a [.......] 
-
-   [.......] b /a [**|....]
-		   |    |
-               gammaR1  gammaR2
- if we section gammaR at any point, can its leftmost part(gammaR1) produce a?
-
-then scope becomes  gammaL b gammaR2 p
-
+if f divR b a
+is there a split gammaR = gammaR1 ++ gammaR2 st
+    gammaR1 -> a and
+    gammaL [b] gammaR2 -> p?
 -}
 
 dec_lfoc :: [LTp] -> LTp -> [LTp] -> Atm -> Bool
-dec_lfoc gammaL f gammaR p = 
+dec_lfoc gammaL f gammaR p =
     case f of
-        Atm t    -> null gammaL && t == p && null gammaR 
-        DivL a b -> any(\i -> let gammaL1 = take i gammaL 
+        Atm t    -> null gammaL && t == p && null gammaR
+        DivL a b -> any(\i -> let gammaL1 = take i gammaL
                                   gammaL2 = drop i gammaL
                               in (dec_rinv gammaL2 a) && (dec_lfoc gammaL1 b gammaR p))
                     [0 .. length gammaL]
@@ -106,14 +92,24 @@ dec_lfoc gammaL f gammaR p =
                     [0 .. length gammaR]
 
 
+{-
+combine_possible_derivations combines every possibility of a next arg in xa with
+every remaining arg list in xb.
+-}
+
 combine_possible_derivations :: ([LExp], [[LExp]]) -> [[LExp]]
-combine_possible_derivations (xa, xb) = if null xa || null xb 
-    then [] 
+combine_possible_derivations (xa, xb) = if null xa || null xb
+    then []
     else concat [map (\xs -> a : xs) xb | a <- xa]
 
+{-
+der_lfoc constructs possible argument lists for the focused expression
+- [] means no success
+- [[]] means success needing no args
+-}
 
 der_lfoc :: [(Var,LTp)] -> LTp -> [(Var,LTp)] -> Atm -> [[LExp]]
-der_lfoc gammaL f gammaR p = 
+der_lfoc gammaL f gammaR p =
     case f of
         Atm t    -> if null gammaL && t == p && null gammaR then [[]] else []
         DivL a b -> concat expressions_filtered
@@ -121,30 +117,36 @@ der_lfoc gammaL f gammaR p =
                 tries = [(take i gammaL, drop i gammaL)| i <- [0 .. length gammaL]]
                 expressions_not_filtered = [(der_rinv gammaL2 a, der_lfoc gammaL1 b gammaR p)| (gammaL1, gammaL2) <- tries]
                 expressions_filtered = map combine_possible_derivations expressions_not_filtered
-        
+
         DivR b a -> concat expressions_filtered
-            where 
+            where
                 tries = [(take i gammaR, drop i gammaR)| i <- [0 .. length gammaR]]
                 expressions_not_filtered = [(der_rinv gammaR1 a, der_lfoc gammaL b gammaR2 p)| (gammaR1, gammaR2) <- tries]
                 expressions_filtered = map combine_possible_derivations expressions_not_filtered
 
-
+-- isGrammatical checks grammatical sentence according to lexicon => True / False
 isGrammatical :: Lexicon sem -> [String] -> Bool
 isGrammatical lex ws = let possibleTypes = [[a | (word, a, _) <- items lex, word == w] | w <- ws]
                            gammas        = sequence possibleTypes
                        in any(\gamma -> dec_rinv gamma (stp lex)) gammas
 
+-- create_names adds position in sentence
 create_names :: [String] -> Int -> [String]
 create_names [] n = []
-create_names (x : xs) n = (x ++ "_" ++ (show n)) : (create_names xs (n + 1)) 
+create_names (x : xs) n = (x ++ "_" ++ (show n)) : (create_names xs (n + 1))
 
+-- getSemantics gives a list of (variable, meaning) pairs
 getSemantics :: [((Var, LTp), sem)] -> [(Var, sem)]
 getSemantics gamma = map (\((v, t), s) -> (v, s)) gamma
 
+{-
+grammaticalStructure returns the pairs of grammatical lambda expressions and list of
+each word's semantic meaning in the respective expression
+-}
 grammaticalStructure :: Lexicon sem -> [String] -> [(LExp, [(Var, sem)])]
-grammaticalStructure lex ws = 
+grammaticalStructure lex ws =
     [(e, semantics)|
-        gamma <- named_gammas, 
+        gamma <- named_gammas,
         let expressions = der_rinv (map fst gamma) (stp lex),
         let semantics = getSemantics gamma,
         e <- expressions]
@@ -153,5 +155,3 @@ grammaticalStructure lex ws =
         possibleTypes = [[(a, sem) | (word, a, sem) <- items lex, word == w] | w <- ws]
         gammas = sequence possibleTypes
         named_gammas = [zipWith (\name (t, s) -> ((name, t), s)) new_names gamma | gamma <- gammas]
-
-
