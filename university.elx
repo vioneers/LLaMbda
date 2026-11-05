@@ -1,0 +1,70 @@
+SENTENCE : s.
+
+Oxford      : np                   = 'Oxford'.
+Harvard     : np                   = 'Harvard'.
+Mit         : np                   = 'MIT'.
+Stanford    : np                   = 'Stanford'.
+Columbia    : np                   = 'Columbia'.
+Eth         : np                   = 'ETH'.
+Epfl        : np                   = 'EPFL'.
+
+Maria      : np        = 'Maria'.
+Teodora    : np        = 'Teodora'.
+Villads    : np        = 'Villads'.
+Eva        : np        = 'Eva'.
+Ioana      : np        = 'Ioana'.
+Luxin      : np        = 'Luxin'.
+Nadia      : np        = 'Nadia'.
+Hugo       : np        = 'Hugo'.
+
+Functional  : np       = 'Functional Programming'.
+Statistics  : np       = 'Statistics'.
+Compilers   : np       = 'Compilers'.
+Analysis    : np       = 'Analysis'.
+Algebra     : np       = 'Algebra'.
+
+
+Entity       : n       = lambda x : x in entities.
+Student      : n       = lambda x : kind[x] == 'student'.
+University   : n       = lambda x : kind[x] == 'university'.
+Course       : n       = lambda x : kind[x] == 'course'.
+
+
+Studies  : np \ (s / np)        = lambda x : lambda y : (x,y) in studies.
+Failed   : np \ (s / np)        = lambda x : lambda y : (x,y) in failed.
+Passed   : np \ (s / np)        = lambda x : lambda y : (x,y) in passed.
+Attends  : np \ (s / np)        = lambda x : lambda y : (x,y) in attends.
+Aced     : np \ (s / np)        = lambda x : lambda y : (x,y) in aced.
+
+Graduates      : np \ s         = lambda x : x in graduates.
+Works          : np \ s         = lambda x : x in works.
+
+
+Is            : np \ (s / adj)       = lambda x : lambda p : p(x).
+
+Easy          : adj                  = lambda x : x in easy.
+Easy          : n / n                = lambda p : lambda x : p(x) and x in easy.
+Challenging   : adj                  = lambda x : x in challenging.
+Challenging   : n / n                = lambda p : lambda x : p(x) and x in challenging.
+
+Smart         : adj                  = lambda x : x in smart.
+Smart         : n / n                = lambda p : lambda x : p(x) and x in smart.
+Tired         : adj                  = lambda x : x in tired.
+Tired         : n / n                = lambda p : lambda x : p(x) and x in tired.
+
+Selective     : adj                  = lambda x : x in selective.
+Selective     : n / n                = lambda p : lambda x : p(x) and x in selective.
+Expensive     : adj                  = lambda x : x in expensive.
+Expensive     : n / n                = lambda p : lambda x : p(x) and x in expensive.
+
+
+Someone  : s / (np \ s)         = lambda p : any (p(x) for x in entities).
+Someone  : (s / np) \ s         = lambda p : any (p(x) for x in entities).
+Every    : (s / (np \ s)) / n   = lambda q : lambda p : all (p(x) for x in entities if q(x)).
+Every    : ((s / np) \ s) / n   = lambda q : lambda p : all (p(x) for x in entities if q(x)).
+A        : (s / (np \ s)) / n   = lambda q : lambda p : any (p(x) and q(x) for x in entities).
+A        : ((s / np) \ s) / n   = lambda q : lambda p : any (p(x) and q(x) for x in entities).
+
+And      : s \ (s / s)          = lambda x : lambda y : x and y.
+And      : adj \ (adj / adj)    = lambda p : lambda q : lambda x : p(x) and q(x).
+And      : np \ ((s / (np \ s)) / np) = lambda x : lambda y : lambda p : p(x) and p(y).
