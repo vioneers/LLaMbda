@@ -3,11 +3,19 @@ module EvalExpr where
 import LExp
 import PySupport
 
+{- extractCode looks for a name inside a list of (Var, PythonCode) and returns 
+its corresponding code
+- [] means entry wasn't found, so the corresponding code is PCode x
+-}
+
 extractCode :: [(Var, PythonCode)] -> Var -> PythonCode
 extractCode [] v = PCode v
 extractCode (entry : env) v = if fst entry == v then snd entry
                                               else extractCode env v
 
+{- interpret uses an environment [(Var, PythonCode)] to obatin the Python code 
+corresponding to a lambda expression
+-}
 interpret :: [(Var, PythonCode)] -> LExp -> PythonCode
 interpret env expr =
     case expr of
@@ -20,6 +28,8 @@ interpret env expr =
             where
                 code = text (interpret env e)
 
+{- translateToCode translates all possible meanings of a sentence to code 
+-}
 translateToCode :: [(LExp, [(Var, PythonCode)])] -> [(LExp, PythonCode)]
 translateToCode xs = [(expr, interpret env expr) |(expr, env) <- xs]
 

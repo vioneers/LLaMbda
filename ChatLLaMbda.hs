@@ -10,6 +10,7 @@ import Parser
 import PySupport
 
 import System.Environment (setEnv)
+import EvalExpr
 
 -- "standardize" the capitalization of a word by making the first
 -- letter uppercase and the following letters lowercase.
@@ -27,10 +28,22 @@ repl elx phandle = do
   let ws = map stdize $ words line
   -- show possible grammatical structure according to the lexicon
   let structures = Lambek.grammaticalStructure elx ws
+
+  {- this was for part 2
   let expressions = map fst structures
   if null expressions
     then putStrLn "That is not a well-formed sentence"
     else mapM_ printLExp expressions
+  -}
+  
+  -- transform lambda expressions to corresponding code => [(LExp, PythonCode)]
+  let pycode = translateToCode structures
+  -- evaluate Python code with evalMeanings => IO [(LExp, String)]; 
+  -- we extract the result [(LExp, String)] using <- 
+  meanings <- evalMeanings phandle pycode 
+  -- print the meanings => IO()
+  printMeanings meanings
+
   -- repeat
   repl elx phandle
       
